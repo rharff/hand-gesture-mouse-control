@@ -50,7 +50,6 @@ def get_args():
 
     return args
 
-
 def main():
     # Argument parsing #################################################################
     args = get_args()
@@ -124,14 +123,11 @@ def main():
     RIGHT_CLICK_HOLD_TIME = 0.8  # Detik gesture harus bertahan
     double_left_click_last_time = 0
     DOUBLE_LEFT_CLICK_HOLD_TIME = 1.2 # detik gesture harus bertahan untuk double click
-    left_click_start_time = None # BARU: Pindahkan inisialisasi ini ke sini
+    left_click_start_time = None 
 
-    # BARU: State untuk cursor relatif, menggantikan state pointer sebelumnya
-    # Ambil posisi mouse saat ini sebagai titik awal
+    # State untuk cursor relatif
     cursor_x, cursor_y = pyautogui.position() 
-    # Simpan posisi landmark dari frame sebelumnya untuk menghitung delta (perubahan)
     prev_landmark_x, prev_landmark_y = None, None
-    # Sesuaikan nilai ini untuk mengubah kecepatan mouse
     MOUSE_SENSITIVITY = 2.0  
 
     while True:
@@ -161,162 +157,149 @@ def main():
         if results.multi_hand_landmarks is not None:
             for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
                                                   results.multi_handedness):
-                # Bounding box calculation
                 brect = calc_bounding_rect(debug_image, hand_landmarks)
-                # Landmark calculation
                 landmark_list = calc_landmark_list(debug_image, hand_landmarks)
 
-                # Conversion to relative coordinates / normalized coordinates
                 pre_processed_landmark_list = pre_process_landmark(
                     landmark_list)
                 pre_processed_point_history_list = pre_process_point_history(
                     debug_image, point_history)
-                # Write to the dataset file
+                
                 logging_csv(number, mode, pre_processed_landmark_list,
                             pre_processed_point_history_list)
 
-                # Hand sign classification
                 hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
-                if hand_sign_id == 2:  # Point gesture
+                if hand_sign_id == 2:
                     point_history.append(landmark_list[8])
                 else:
                     point_history.append([0, 0])
 
-                # Finger gesture classification
                 finger_gesture_id = 0
                 point_history_len = len(pre_processed_point_history_list)
                 if point_history_len == (history_length * 2):
                     finger_gesture_id = point_history_classifier(
                         pre_processed_point_history_list)
 
-                # Calculates the gesture IDs in the latest detection
                 finger_gesture_history.append(finger_gesture_id)
                 most_common_fg_id = Counter(
                     finger_gesture_history).most_common()
 
-                # Ambil label gesture dari hasil klasifikasi
                 hand_sign_label = keypoint_classifier_labels[hand_sign_id]
 
                 # 1. Pointer: gerakkan kursor
                 if hand_sign_label == 'Pointer (cursor aktif)':
-                # Ambil koordinat landmark saat ini (ujung telunjuk)
                     current_landmark_x, current_landmark_y = landmark_list[8]
-
-                # Jika ini frame pertama setelah tangan terdeteksi (atau terdeteksi ulang),
-                # kita hanya menyimpan posisinya sebagai acuan, tanpa menggerakkan mouse.
                     if prev_landmark_x is None:
                         prev_landmark_x, prev_landmark_y = current_landmark_x, current_landmark_y
                     else:
-                    # Hitung perubahan posisi (delta) dari landmark sejak frame terakhir
                         delta_x = current_landmark_x - prev_landmark_x
                         delta_y = current_landmark_y - prev_landmark_y
-
-                    # Update posisi kursor target berdasarkan perubahan dan sensitivitas
                         cursor_x += delta_x * MOUSE_SENSITIVITY
                         cursor_y += delta_y * MOUSE_SENSITIVITY
-
-                    # Pastikan kursor tetap berada di dalam batas layar
                         screen_w, screen_h = pyautogui.size()
                         cursor_x = max(0, min(screen_w - 1, cursor_x))
                         cursor_y = max(0, min(screen_h - 1, cursor_y))
-                        
-                        # Gerakkan mouse ke posisi baru
                         pyautogui.moveTo(cursor_x, cursor_y, duration=0.01)
-
-                        # Simpan posisi landmark saat ini untuk perhitungan di frame berikutnya
                         prev_landmark_x, prev_landmark_y = current_landmark_x, current_landmark_y
-
-                    # Reset status aksi lain
                     mouse_left_clicked = False
                     mouse_right_clicked = False
-
-                else:
-                # Jika gestur BUKAN lagi pointer, reset posisi acuan landmark
-                # Ini mencegah kursor melompat jika gestur pointer aktif kembali
-                    prev_landmark_x, prev_landmark_y = None, None
-                # 2. OK: left click sekali dengan delay, double click jika gesture bertahan 1.2 detik
-                if hand_sign_label == 'OK (left click)':
-                    now = time.time()
-                    if left_click_start_time is None:
-                        left_click_start_time = now
-                    # Double click jika gesture bertahan 1.2 detik dan delay terpenuhi
-                    elif (now - left_click_start_time) >= DOUBLE_LEFT_CLICK_HOLD_TIME and (now - double_left_click_last_time) > ACTION_DELAY:
-                        pyautogui.doubleClick()
-                        double_left_click_last_time = now
-                        left_click_start_time = None  # reset agar tidak berulang
-                        mouse_left_clicked = True
-                        left_click_last_time = now
-                    # Single click jika delay terpenuhi dan belum double click
-                    elif not mouse_left_clicked and (now - left_click_last_time) > ACTION_DELAY:
-                        pyautogui.click(button='left')
-                        mouse_left_clicked = True
-                        left_click_last_time = now
-                    mouse_left_down = False
-                    right_click_start_time = None
-                else:
-                    left_click_start_time = None
-                # 3. Two: right click sekali, hanya jika gesture bertahan 0.8 detik dan delay
-                if hand_sign_label == 'Two (right click)':
-                    now = time.time()
-                    if right_click_start_time is None:
-                        right_click_start_time = now
-                    elif (now - right_click_start_time) >= RIGHT_CLICK_HOLD_TIME and not mouse_right_clicked and (now - right_click_last_time) > ACTION_DELAY:
-                        pyautogui.click(button='right')
-                        mouse_right_clicked = True
-                        right_click_last_time = now
-                    mouse_left_down = False
-                else:
-                    right_click_start_time = None
-                # 4. Open: drag (tahan left click)
-                if hand_sign_label == 'Open (drag)':
-                    x, y = landmark_list[8]
-                    screen_w, screen_h = pyautogui.size()
-                    frame_w, frame_h = debug_image.shape[1], debug_image.shape[0]
-                    mouse_x = int(x / frame_w * screen_w)
-                    mouse_y = int(y / frame_h * screen_h)
+                
+                # 4. Open: drag (menggunakan pergerakan relatif yang lebih halus)
+                elif hand_sign_label == 'Open (drag)':
                     if not mouse_left_down:
-                        pyautogui.mouseDown(mouse_x, mouse_y, button='left')
+                        pyautogui.mouseDown(button='left')
                         mouse_left_down = True
+                    current_landmark_x, current_landmark_y = landmark_list[8]
+                    if prev_landmark_x is None:
+                        prev_landmark_x, prev_landmark_y = current_landmark_x, current_landmark_y
                     else:
-                        pyautogui.moveTo(mouse_x, mouse_y, duration=0.05)
+                        delta_x = current_landmark_x - prev_landmark_x
+                        delta_y = current_landmark_y - prev_landmark_y
+                        cursor_x += delta_x * MOUSE_SENSITIVITY
+                        cursor_y += delta_y * MOUSE_SENSITIVITY
+                        screen_w, screen_h = pyautogui.size()
+                        cursor_x = max(0, min(screen_w - 1, cursor_x))
+                        cursor_y = max(0, min(screen_h - 1, cursor_y))
+                        pyautogui.moveTo(cursor_x, cursor_y, duration=0.01)
+                        prev_landmark_x, prev_landmark_y = current_landmark_x, current_landmark_y
                     mouse_left_clicked = False
                     mouse_right_clicked = False
-                # 5. Close: lepas drag
-                if hand_sign_label == 'Close (drop/stop)':
-                    if mouse_left_down:
-                        pyautogui.mouseUp(button='left')
-                        mouse_left_down = False
-                    mouse_left_clicked = False
-                    mouse_right_clicked = False
-                # 6. Shoot up: scroll up
-                if hand_sign_label == 'Shoot up (scroll up)':
-                    pyautogui.scroll(35)
-                    mouse_left_clicked = False
-                    mouse_right_clicked = False
-                # 7. Thumb: scroll down
-                if hand_sign_label == 'Thumb (scroll down)':
-                    pyautogui.scroll(-35)
-                    mouse_left_clicked = False
-                    mouse_right_clicked = False
-                # 8. Shoot 1: swipe right dengan delay
-                if hand_sign_label == 'Shoot 1 (swipe right)':
-                    now = time.time()
-                    if (now - swipe_right_last_time) > ACTION_DELAY:
-                        pyautogui.hotkey('alt', 'right')
-                        swipe_right_last_time = now
-                    mouse_left_clicked = False
-                    mouse_right_clicked = False
-                # 9. Shoot 2: swipe left dengan delay
-                if hand_sign_label == 'Shoot 2 (swipe left)':
-                    now = time.time()
-                    if (now - swipe_left_last_time) > ACTION_DELAY:
-                        pyautogui.hotkey('alt', 'left')
-                        swipe_left_last_time = now
-                    mouse_left_clicked = False
-                    mouse_right_clicked = False
+
                 else:
-                    mouse_left_clicked = False
-                    mouse_right_clicked = False
+                    # Jika gestur BUKAN pointer atau drag, reset posisi acuan landmark
+                    prev_landmark_x, prev_landmark_y = None, None
+                    
+                    # Logika untuk gestur lainnya
+                    # 2. OK: left click sekali dengan delay, double click jika gesture bertahan 1.2 detik
+                    if hand_sign_label == 'OK (left click)':
+                        now = time.time()
+                        if left_click_start_time is None:
+                            left_click_start_time = now
+                        elif (now - left_click_start_time) >= DOUBLE_LEFT_CLICK_HOLD_TIME and (now - double_left_click_last_time) > ACTION_DELAY:
+                            pyautogui.doubleClick()
+                            double_left_click_last_time = now
+                            left_click_start_time = None
+                            mouse_left_clicked = True
+                            left_click_last_time = now
+                        elif not mouse_left_clicked and (now - left_click_last_time) > ACTION_DELAY:
+                            pyautogui.click(button='left')
+                            mouse_left_clicked = True
+                            left_click_last_time = now
+                        mouse_left_down = False
+                        right_click_start_time = None
+                    else:
+                        left_click_start_time = None
+
+                    # 3. Two: right click sekali, hanya jika gesture bertahan 0.8 detik dan delay
+                    if hand_sign_label == 'Two (right click)':
+                        now = time.time()
+                        if right_click_start_time is None:
+                            right_click_start_time = now
+                        elif (now - right_click_start_time) >= RIGHT_CLICK_HOLD_TIME and not mouse_right_clicked and (now - right_click_last_time) > ACTION_DELAY:
+                            pyautogui.click(button='right')
+                            mouse_right_clicked = True
+                            right_click_last_time = now
+                        mouse_left_down = False
+                    else:
+                        right_click_start_time = None
+
+                    # 5. Close: lepas drag
+                    if hand_sign_label == 'Close (drop/stop)':
+                        if mouse_left_down:
+                            pyautogui.mouseUp(button='left')
+                            mouse_left_down = False
+                        mouse_left_clicked = False
+                        mouse_right_clicked = False
+                        
+                    # 6. Shoot up: scroll up
+                    if hand_sign_label == 'Shoot up (scroll up)':
+                        pyautogui.scroll(35)
+                        mouse_left_clicked = False
+                        mouse_right_clicked = False
+                        
+                    # 7. Thumb: scroll down
+                    if hand_sign_label == 'Thumb (scroll down)':
+                        pyautogui.scroll(-35)
+                        mouse_left_clicked = False
+                        mouse_right_clicked = False
+                        
+                    # 8. Shoot 1: swipe right dengan delay
+                    if hand_sign_label == 'Shoot 1 (swipe right)':
+                        now = time.time()
+                        if (now - swipe_right_last_time) > ACTION_DELAY:
+                            pyautogui.hotkey('alt', 'right')
+                            swipe_right_last_time = now
+                        mouse_left_clicked = False
+                        mouse_right_clicked = False
+                        
+                    # 9. Shoot 2: swipe left dengan delay
+                    if hand_sign_label == 'Shoot 2 (swipe left)':
+                        now = time.time()
+                        if (now - swipe_left_last_time) > ACTION_DELAY:
+                            pyautogui.hotkey('alt', 'left')
+                            swipe_left_last_time = now
+                        mouse_left_clicked = False
+                        mouse_right_clicked = False
 
                 # Drawing part
                 debug_image = draw_bounding_rect(use_brect, debug_image, brect)
@@ -330,6 +313,12 @@ def main():
                 )
         else:
             point_history.append([0, 0])
+            # Reset posisi acuan jika tidak ada tangan terdeteksi
+            prev_landmark_x, prev_landmark_y = None, None
+            # Pastikan mouse dilepas jika tangan hilang saat sedang drag
+            if mouse_left_down:
+                pyautogui.mouseUp(button='left')
+                mouse_left_down = False
 
         debug_image = draw_point_history(debug_image, point_history)
         debug_image = draw_info(debug_image, fps, mode, number)
@@ -339,7 +328,6 @@ def main():
 
     cap.release()
     cv.destroyAllWindows()
-
 
 def select_mode(key, mode):
     number = -1
