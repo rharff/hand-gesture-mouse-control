@@ -12,12 +12,19 @@ This repository contains the following contents.
 * Learning data for hand sign recognition and notebook for learning
 * Learning data for finger gesture recognition and notebook for learning
 
+# Installation
+* Install conda first
+* Preparing the enviroment
+```bash
+conda create --no-default-packages --name vision python=3.12
+conda activate vision
+```
+
+
 # Requirements
-* mediapipe 0.8.1
-* OpenCV 3.4.2 or Later
-* Tensorflow 2.3.0 or Later<br>tf-nightly 2.5.0.dev or later (Only when creating a TFLite for an LSTM model)
-* scikit-learn 0.23.2 or Later (Only if you want to display the confusion matrix) 
-* matplotlib 3.3.2 or Later (Only if you want to display the confusion matrix)
+```bash
+pip install -r requirements.txt
+```
 
 # Demo
 Here's how to run the demo using your webcam.
