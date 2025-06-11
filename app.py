@@ -6,14 +6,27 @@ import argparse
 import itertools
 from collections import Counter
 from collections import deque
+import time
 
 import cv2 as cv
 import numpy as np
 import mediapipe as mp
+import pyautogui
 
 from utils import CvFpsCalc
 from model import KeyPointClassifier
 from model import PointHistoryClassifier
+
+
+# Mapping gesture ke aksi mouse
+# Misal: 0 = move, 1 = left click, 2 = right click, 3 = drag, dst
+GESTURE_TO_MOUSE_ACTION = {
+    0: 'move',
+    1: 'left_click',
+    2: 'right_click',
+    3: 'drag',
+    # Tambahkan mapping sesuai label model Anda
+}
 
 
 def get_args():
@@ -98,6 +111,19 @@ def main():
     #  ########################################################################
     mode = 0
 
+    # Status untuk mencegah klik/drag/aksi berulang
+    mouse_left_down = False
+    mouse_left_clicked = False
+    mouse_right_clicked = False
+    right_click_start_time = None
+    left_click_last_time = 0
+    right_click_last_time = 0
+    swipe_right_last_time = 0
+    swipe_left_last_time = 0
+    ACTION_DELAY = 0.8  # detik delay antar aksi agar tidak berulang
+    RIGHT_CLICK_THRESHOLD = 3  # Minimal frame berturut-turut
+    RIGHT_CLICK_HOLD_TIME = 0.8  # Detik gesture harus bertahan
+
     while True:
         fps = cvFpsCalc.get()
 
@@ -157,6 +183,92 @@ def main():
                 finger_gesture_history.append(finger_gesture_id)
                 most_common_fg_id = Counter(
                     finger_gesture_history).most_common()
+
+                # Ambil label gesture dari hasil klasifikasi
+                hand_sign_label = keypoint_classifier_labels[hand_sign_id]
+
+                # 1. Pointer: gerakkan kursor
+                if hand_sign_label == 'Pointer (cursor aktif)':
+                    x, y = landmark_list[8]
+                    screen_w, screen_h = pyautogui.size()
+                    frame_w, frame_h = debug_image.shape[1], debug_image.shape[0]
+                    mouse_x = int(x / frame_w * screen_w)
+                    mouse_y = int(y / frame_h * screen_h)
+                    pyautogui.moveTo(mouse_x, mouse_y, duration=0.05)
+                    mouse_left_clicked = False
+                    mouse_right_clicked = False
+                    right_click_buffer = 0
+                # 2. OK: left click sekali dengan delay
+                elif hand_sign_label == 'OK (left click)':
+                    now = time.time()
+                    if not mouse_left_clicked and (now - left_click_last_time) > ACTION_DELAY:
+                        pyautogui.click(button='left')
+                        mouse_left_clicked = True
+                        left_click_last_time = now
+                    mouse_left_down = False
+                    right_click_start_time = None
+                # 3. Two: right click sekali, hanya jika gesture bertahan 0.8 detik dan delay
+                elif hand_sign_label == 'Two (right click)':
+                    now = time.time()
+                    if right_click_start_time is None:
+                        right_click_start_time = now
+                    elif (now - right_click_start_time) >= RIGHT_CLICK_HOLD_TIME and not mouse_right_clicked and (now - right_click_last_time) > ACTION_DELAY:
+                        pyautogui.click(button='right')
+                        mouse_right_clicked = True
+                        right_click_last_time = now
+                    mouse_left_down = False
+                else:
+                    right_click_start_time = None
+                # 4. Open: drag (tahan left click)
+                if hand_sign_label == 'Open (drag)':
+                    x, y = landmark_list[8]
+                    screen_w, screen_h = pyautogui.size()
+                    frame_w, frame_h = debug_image.shape[1], debug_image.shape[0]
+                    mouse_x = int(x / frame_w * screen_w)
+                    mouse_y = int(y / frame_h * screen_h)
+                    if not mouse_left_down:
+                        pyautogui.mouseDown(mouse_x, mouse_y, button='left')
+                        mouse_left_down = True
+                    else:
+                        pyautogui.moveTo(mouse_x, mouse_y, duration=0.05)
+                    mouse_left_clicked = False
+                    mouse_right_clicked = False
+                # 5. Close: lepas drag
+                if hand_sign_label == 'Close (drop/stop)':
+                    if mouse_left_down:
+                        pyautogui.mouseUp(button='left')
+                        mouse_left_down = False
+                    mouse_left_clicked = False
+                    mouse_right_clicked = False
+                # 6. Shoot up: scroll up
+                if hand_sign_label == 'Shoot up (scroll up)':
+                    pyautogui.scroll(50)
+                    mouse_left_clicked = False
+                    mouse_right_clicked = False
+                # 7. Thumb: scroll down
+                if hand_sign_label == 'Thumb (scroll down)':
+                    pyautogui.scroll(-50)
+                    mouse_left_clicked = False
+                    mouse_right_clicked = False
+                # 8. Shoot 1: swipe right dengan delay
+                if hand_sign_label == 'Shoot 1 (swipe right)':
+                    now = time.time()
+                    if (now - swipe_right_last_time) > ACTION_DELAY:
+                        pyautogui.hotkey('alt', 'right')
+                        swipe_right_last_time = now
+                    mouse_left_clicked = False
+                    mouse_right_clicked = False
+                # 9. Shoot 2: swipe left dengan delay
+                if hand_sign_label == 'Shoot 2 (swipe left)':
+                    now = time.time()
+                    if (now - swipe_left_last_time) > ACTION_DELAY:
+                        pyautogui.hotkey('alt', 'left')
+                        swipe_left_last_time = now
+                    mouse_left_clicked = False
+                    mouse_right_clicked = False
+                else:
+                    mouse_left_clicked = False
+                    mouse_right_clicked = False
 
                 # Drawing part
                 debug_image = draw_bounding_rect(use_brect, debug_image, brect)
