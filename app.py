@@ -121,8 +121,18 @@ def main():
     swipe_right_last_time = 0
     swipe_left_last_time = 0
     ACTION_DELAY = 0.8  # detik delay antar aksi agar tidak berulang
-    RIGHT_CLICK_THRESHOLD = 3  # Minimal frame berturut-turut
     RIGHT_CLICK_HOLD_TIME = 0.8  # Detik gesture harus bertahan
+    double_left_click_last_time = 0
+    DOUBLE_LEFT_CLICK_HOLD_TIME = 1.2 # detik gesture harus bertahan untuk double click
+    left_click_start_time = None # BARU: Pindahkan inisialisasi ini ke sini
+
+    # BARU: State untuk cursor relatif, menggantikan state pointer sebelumnya
+    # Ambil posisi mouse saat ini sebagai titik awal
+    cursor_x, cursor_y = pyautogui.position() 
+    # Simpan posisi landmark dari frame sebelumnya untuk menghitung delta (perubahan)
+    prev_landmark_x, prev_landmark_y = None, None
+    # Sesuaikan nilai ini untuk mengubah kecepatan mouse
+    MOUSE_SENSITIVITY = 2.0  
 
     while True:
         fps = cvFpsCalc.get()
@@ -189,26 +199,64 @@ def main():
 
                 # 1. Pointer: gerakkan kursor
                 if hand_sign_label == 'Pointer (cursor aktif)':
-                    x, y = landmark_list[8]
-                    screen_w, screen_h = pyautogui.size()
-                    frame_w, frame_h = debug_image.shape[1], debug_image.shape[0]
-                    mouse_x = int(x / frame_w * screen_w)
-                    mouse_y = int(y / frame_h * screen_h)
-                    pyautogui.moveTo(mouse_x, mouse_y, duration=0.05)
+                # Ambil koordinat landmark saat ini (ujung telunjuk)
+                    current_landmark_x, current_landmark_y = landmark_list[8]
+
+                # Jika ini frame pertama setelah tangan terdeteksi (atau terdeteksi ulang),
+                # kita hanya menyimpan posisinya sebagai acuan, tanpa menggerakkan mouse.
+                    if prev_landmark_x is None:
+                        prev_landmark_x, prev_landmark_y = current_landmark_x, current_landmark_y
+                    else:
+                    # Hitung perubahan posisi (delta) dari landmark sejak frame terakhir
+                        delta_x = current_landmark_x - prev_landmark_x
+                        delta_y = current_landmark_y - prev_landmark_y
+
+                    # Update posisi kursor target berdasarkan perubahan dan sensitivitas
+                        cursor_x += delta_x * MOUSE_SENSITIVITY
+                        cursor_y += delta_y * MOUSE_SENSITIVITY
+
+                    # Pastikan kursor tetap berada di dalam batas layar
+                        screen_w, screen_h = pyautogui.size()
+                        cursor_x = max(0, min(screen_w - 1, cursor_x))
+                        cursor_y = max(0, min(screen_h - 1, cursor_y))
+                        
+                        # Gerakkan mouse ke posisi baru
+                        pyautogui.moveTo(cursor_x, cursor_y, duration=0.01)
+
+                        # Simpan posisi landmark saat ini untuk perhitungan di frame berikutnya
+                        prev_landmark_x, prev_landmark_y = current_landmark_x, current_landmark_y
+
+                    # Reset status aksi lain
                     mouse_left_clicked = False
                     mouse_right_clicked = False
-                    right_click_buffer = 0
-                # 2. OK: left click sekali dengan delay
-                elif hand_sign_label == 'OK (left click)':
+
+                else:
+                # Jika gestur BUKAN lagi pointer, reset posisi acuan landmark
+                # Ini mencegah kursor melompat jika gestur pointer aktif kembali
+                    prev_landmark_x, prev_landmark_y = None, None
+                # 2. OK: left click sekali dengan delay, double click jika gesture bertahan 1.2 detik
+                if hand_sign_label == 'OK (left click)':
                     now = time.time()
-                    if not mouse_left_clicked and (now - left_click_last_time) > ACTION_DELAY:
+                    if left_click_start_time is None:
+                        left_click_start_time = now
+                    # Double click jika gesture bertahan 1.2 detik dan delay terpenuhi
+                    elif (now - left_click_start_time) >= DOUBLE_LEFT_CLICK_HOLD_TIME and (now - double_left_click_last_time) > ACTION_DELAY:
+                        pyautogui.doubleClick()
+                        double_left_click_last_time = now
+                        left_click_start_time = None  # reset agar tidak berulang
+                        mouse_left_clicked = True
+                        left_click_last_time = now
+                    # Single click jika delay terpenuhi dan belum double click
+                    elif not mouse_left_clicked and (now - left_click_last_time) > ACTION_DELAY:
                         pyautogui.click(button='left')
                         mouse_left_clicked = True
                         left_click_last_time = now
                     mouse_left_down = False
                     right_click_start_time = None
+                else:
+                    left_click_start_time = None
                 # 3. Two: right click sekali, hanya jika gesture bertahan 0.8 detik dan delay
-                elif hand_sign_label == 'Two (right click)':
+                if hand_sign_label == 'Two (right click)':
                     now = time.time()
                     if right_click_start_time is None:
                         right_click_start_time = now
@@ -242,12 +290,12 @@ def main():
                     mouse_right_clicked = False
                 # 6. Shoot up: scroll up
                 if hand_sign_label == 'Shoot up (scroll up)':
-                    pyautogui.scroll(50)
+                    pyautogui.scroll(35)
                     mouse_left_clicked = False
                     mouse_right_clicked = False
                 # 7. Thumb: scroll down
                 if hand_sign_label == 'Thumb (scroll down)':
-                    pyautogui.scroll(-50)
+                    pyautogui.scroll(-35)
                     mouse_left_clicked = False
                     mouse_right_clicked = False
                 # 8. Shoot 1: swipe right dengan delay
