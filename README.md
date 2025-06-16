@@ -46,19 +46,19 @@ Tracking confidence threshold (Default：0.5)
 
 Here is the list of program features
 * Cursor move
-  <img src="![image](https://github.com/user-attachments/assets/a7445b78-8159-4427-8ddc-c67498521cd9)">
+    ![Cursor move demonstration](https://github.com/user-attachments/assets/a7445b78-8159-4427-8ddc-c67498521cd9)
 * Left & right click
-  <img src="![image](https://github.com/user-attachments/assets/f37c1a9f-7bc4-42b7-b5cb-a4f61011d9c3)">
-  <img src="![image](https://github.com/user-attachments/assets/895e01af-cddc-4cbd-8715-df04c71f2cf1)">
+    ![Left click action](https://github.com/user-attachments/assets/f37c1a9f-7bc4-42b7-b5cb-a4f61011d9c3)
+    ![Right click action](https://github.com/user-attachments/assets/895e01af-cddc-4cbd-8715-df04c71f2cf1)
 * Drag & drop
-  <img src="![image](https://github.com/user-attachments/assets/fe60c9f7-80b4-4d64-869f-ea509c4d2593)">
-  <img src="![image](https://github.com/user-attachments/assets/a02514fc-49c6-4a54-ae8f-ac18686a01e7)">
+    ![Drag action](https://github.com/user-attachments/assets/fe60c9f7-80b4-4d64-869f-ea509c4d2593)
+    ![Drop action](https://github.com/user-attachments/assets/a02514fc-49c6-4a54-ae8f-ac18686a01e7)
 * Swipe right and left
-  <img src="![image](https://github.com/user-attachments/assets/e583f815-8d07-4955-8f08-95be19825faf)">
-  <img src="![image](https://github.com/user-attachments/assets/254e3e07-0050-4274-aef5-4b09ab02580b)">
+    ![Swipe right gesture](https://github.com/user-attachments/assets/e583f815-8d07-4955-8f08-95be19825faf)
+    ![Swipe left gesture](https://github.com/user-attachments/assets/254e3e07-0050-4274-aef5-4b09ab02580b)
 * Scroll up and down
-  <img src="![image](https://github.com/user-attachments/assets/9372118c-dafe-4285-905e-45464f8ef7ea)">
-  <img src="![image](https://github.com/user-attachments/assets/f3c558fb-437c-4859-aec2-66d028bf0a7f)">
+    ![Scroll up action](https://github.com/user-attachments/assets/9372118c-dafe-4285-905e-45464f8ef7ea)
+    ![Scroll down action](https://github.com/user-attachments/assets/f3c558fb-437c-4859-aec2-66d028bf0a7f)
 
 # Directory
 <pre>
