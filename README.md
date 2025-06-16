@@ -46,19 +46,22 @@ Tracking confidence threshold (Default：0.5)
 
 Here is the list of program features
 * Cursor move
-    ![Cursor move demonstration](https://github.com/user-attachments/assets/a7445b78-8159-4427-8ddc-c67498521cd9)<br>
+    <br><img src="https://github.com/user-attachments/assets/a7445b78-8159-4427-8ddc-c67498521cd9" alt="Cursor move demonstration" width="40%"><br>
 * Left & right click
-    ![Left click action](https://github.com/user-attachments/assets/f37c1a9f-7bc4-42b7-b5cb-a4f61011d9c3)<br>
-    ![Right click action](https://github.com/user-attachments/assets/895e01af-cddc-4cbd-8715-df04c71f2cf1)<br>
+    <br><img src="https://github.com/user-attachments/assets/f37c1a9f-7bc4-42b7-b5cb-a4f61011d9c3" alt="Left click action" width="40%">
+    <img src="https://github.com/user-attachments/assets/895e01af-cddc-4cbd-8715-df04c71f2cf1" alt="Right click action" width="40%">
+
 * Drag & drop
-    ![Drag action](https://github.com/user-attachments/assets/fe60c9f7-80b4-4d64-869f-ea509c4d2593)<br>
-    ![Drop action](https://github.com/user-attachments/assets/a02514fc-49c6-4a54-ae8f-ac18686a01e7)<br>
+    <br><img src="https://github.com/user-attachments/assets/fe60c9f7-80b4-4d64-869f-ea509c4d2593" alt="Drag action" width="40%">
+    <img src="https://github.com/user-attachments/assets/a02514fc-49c6-4a54-ae8f-ac18686a01e7" alt="Drop action" width="40%">
+
 * Swipe right and left
-    ![Swipe right gesture](https://github.com/user-attachments/assets/e583f815-8d07-4955-8f08-95be19825faf)<br>
-    ![Swipe left gesture](https://github.com/user-attachments/assets/254e3e07-0050-4274-aef5-4b09ab02580b)<br>
+    <br><img src="https://github.com/user-attachments/assets/e583f815-8d07-4955-8f08-95be19825faf" alt="Swipe right gesture" width="40%">
+    <img src="https://github.com/user-attachments/assets/254e3e07-0050-4274-aef5-4b09ab02580b" alt="Swipe left gesture" width="40%">
+
 * Scroll up and down
-    ![Scroll up action](https://github.com/user-attachments/assets/9372118c-dafe-4285-905e-45464f8ef7ea)<br>
-    ![Scroll down action](https://github.com/user-attachments/assets/f3c558fb-437c-4859-aec2-66d028bf0a7f)<br>
+    <br><img src="https://github.com/user-attachments/assets/9372118c-dafe-4285-905e-45464f8ef7ea" alt="Scroll up action" width="40%">
+    <img src="https://github.com/user-attachments/assets/f3c558fb-437c-4859-aec2-66d028bf0a7f" alt="Scroll down action" width="40%"><br>
 
 # Directory
 <pre>
